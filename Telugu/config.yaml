@@ -1,0 +1,126 @@
+# FastSpeech2 - Telugu configuration (one file instead of upstream's preprocess/model/train yamls)
+# Dataset: SPRINGLab/IndicTTS_Telugu.
+language: Telugu
+
+# ------------------------------------------------------------------------------------------
+preprocess:
+  dataset: "IndicTTS_Telugu"
+
+  hf_dataset:
+    name: "SPRINGLab/IndicTTS_Telugu"
+    split: "train"
+    audio_column: "audio"
+    text_column: "text"
+    id_prefix: "te"
+
+  # columns that identify the "speaker" (joined into one key). See README for the reasoning.
+  speaker_columns: [gender]
+
+  # CTC forced aligner that replaces the Montreal Forced Aligner (see preprocess.py)
+  aligner:
+    model: "anuragshas/wav2vec2-large-xlsr-53-telugu"
+
+  # utterances outside these limits (or with a poor alignment) are dropped
+  filters:
+    min_seconds: 0.8
+    max_raw_seconds: 20.0
+    max_mel_frames: 1150        # must stay below model.max_seq_len
+    min_chars: 3
+    min_align_score: -1.2      # mean CTC log-prob along the aligned path; lower = worse
+
+  path:
+    preprocessed_path: "./preprocessed_data/IndicTTS_Telugu"
+
+  preprocessing:
+    val_size: 300
+    text:
+      text_cleaners: ["telugu_cleaners"]
+      language: "te"
+    audio:
+      sampling_rate: 22050      # same mel setup as the pretrained LJSpeech FastSpeech2 + HiFi-GAN
+      max_wav_value: 32768.0
+    stft:
+      filter_length: 1024
+      hop_length: 256
+      win_length: 1024
+    mel:
+      n_mel_channels: 80
+      mel_fmin: 0
+      mel_fmax: 8000
+    pitch:
+      feature: "phoneme_level"
+      normalization: True
+    energy:
+      feature: "phoneme_level"
+      normalization: True
+
+# ------------------------------------------------------------------------------------------
+model:
+  transformer:
+    encoder_layer: 4
+    encoder_head: 2
+    encoder_hidden: 256
+    decoder_layer: 6
+    decoder_head: 2
+    decoder_hidden: 256
+    conv_filter_size: 1024
+    conv_kernel_size: [9, 1]
+    encoder_dropout: 0.2
+    decoder_dropout: 0.2
+
+  variance_predictor:
+    filter_size: 256
+    kernel_size: 3
+    dropout: 0.5
+
+  variance_embedding:
+    pitch_quantization: "linear"
+    energy_quantization: "linear"
+    n_bins: 256
+
+  multi_speaker: True          # speaker id = gender label of the IndicTTS recording (female / male)
+  max_seq_len: 1200            # longest mel / text sequence (1200 frames = 13.9 s)
+
+  vocoder:
+    model: "HiFi-GAN"
+    speaker: "universal"         # generator_universal.pth.tar is downloaded automatically
+
+# ------------------------------------------------------------------------------------------
+train:
+  language: "Telugu"
+  export_name: "fastspeech2_telugu_final.pth.tar"
+
+  path:
+    ckpt_path: "./checkpoints/full"      # full training checkpoints (large, git-ignored)
+    log_path: "./checkpoints/logs"       # loss CSVs + TensorBoard
+    release_path: "./checkpoints"        # small fp16 checkpoint that goes to GitHub
+    results_path: "../Results/Telugu"   # training_loss.png / validation_loss.png
+
+  optimizer:
+    batch_size: 16
+    betas: [0.9, 0.98]
+    eps: 0.000000001
+    weight_decay: 0.0
+    grad_clip_thresh: 1.0
+    grad_acc_step: 1
+    warm_up_step: 4000
+    anneal_steps: []              # short fine-tuning run: no step decay
+    anneal_rate: 0.3
+
+  step:
+    total_step: 30000
+    log_step: 50
+    synth_step: 2000
+    val_step: 500
+    save_step: 2500
+
+# ------------------------------------------------------------------------------------------
+inference:
+  results_path: "../Results/Telugu"
+  speaker: 0                    # label (see preprocessed_data/*/speakers.json) or integer id
+  test_sentences:
+    - "నమస్కారం, మీరు ఎలా ఉన్నారు?"
+    - "తెలుగు భాష చాలా మధురమైనది."
+    - "ఈ రోజు వాతావరణం చాలా బాగుంది."
+    - "మా ఊరిలో పెద్ద చెరువు ఉంది, పిల్లలు అక్కడ ఆడుకుంటారు."
+    - "విద్య ప్రతి ఒక్కరికీ అవసరం, అది మన భవిష్యత్తును మారుస్తుంది."

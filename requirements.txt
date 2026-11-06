@@ -1,0 +1,22 @@
+# Tested with Python 3.10-3.13 (Colab default works). Upstream's pinned 2020 versions
+# (torch 1.7, numpy 1.19, librosa 0.7) no longer install; the code here was ported to modern libs.
+torch>=2.1
+numpy
+scipy
+librosa>=0.10
+soundfile
+pyworld
+scikit-learn
+PyYAML
+matplotlib
+tqdm
+inflect
+unidecode
+tensorboard
+pandas
+# dataset loading + CTC forced aligner (replaces Montreal Forced Aligner)
+datasets>=2.19
+transformers>=4.40
+huggingface_hub
+# report generation (Report/make_report.py)
+reportlab

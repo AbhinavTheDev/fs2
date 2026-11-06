@@ -1,0 +1,10 @@
+__pycache__/
+*.pyc
+# large intermediate artefacts (kept out of GitHub)
+*/preprocessed_data/
+*/raw_data/
+*/checkpoints/full/
+*/checkpoints/logs/tb/
+*/hifigan/generator_*.pth.tar
+*/hifigan/generator_*.pth.tar.zip
+.ipynb_checkpoints/
